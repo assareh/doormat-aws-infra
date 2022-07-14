@@ -29,7 +29,7 @@ provider "aws" {
 resource "aws_iam_role" "terraform_role" {
   name = "assareh-hashidemos-terraform-role"
   tags = {
-    hc-service-uri = "app.terraform.io/hashidemos/hashicat-aws"
+    hc-service-uri = "app.terraform.io/hashidemos/control-workspace"
   }
   max_session_duration = 3600
   assume_role_policy   = data.aws_iam_policy_document.terraform_assume.json
@@ -57,7 +57,7 @@ data "aws_iam_policy_document" "terraform_assume" {
 # terraform policy
 data "aws_iam_policy_document" "terraform" {
   statement {
-    actions   = ["ec2:DescribeRegions"]
+    actions   = ["ec2:*"]
     resources = ["*"]
   }
 }
