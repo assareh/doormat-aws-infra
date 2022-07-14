@@ -8,6 +8,13 @@ locals {
   }
 }
 
+output "terraform_role" {
+  description = "Terraform IAM role"
+  value       = aws_iam_role.terraform_role.arn
+}
+
+variable "doormat_iam_principal" {}
+
 variable "my_iam_principal" {}
 
 provider "aws" {
@@ -15,6 +22,43 @@ provider "aws" {
 
   default_tags {
     tags = local.common_tags
+  }
+}
+
+### For Doormat provider ###
+resource "aws_iam_role" "terraform_role" {
+  name = "assareh-hashidemos-terraform-role"
+  tags = {
+    hc-service-uri = "app.terraform.io/hashidemos/hashicat-aws"
+  }
+  max_session_duration = 3600
+  assume_role_policy   = data.aws_iam_policy_document.terraform_assume.json
+  inline_policy {
+    name   = "TerraformRolePermissions"
+    policy = data.aws_iam_policy_document.terraform.json
+  }
+}
+
+# assume role policy
+data "aws_iam_policy_document" "terraform_assume" {
+  statement {
+    actions = [
+      "sts:AssumeRole",
+      "sts:SetSourceIdentity",
+      "sts:TagSession"
+    ]
+    principals {
+      type        = "AWS"
+      identifiers = [var.doormat_iam_principal]
+    }
+  }
+}
+
+# terraform policy
+data "aws_iam_policy_document" "terraform" {
+  statement {
+    actions   = ["ec2:DescribeRegions"]
+    resources = ["*"]
   }
 }
 
