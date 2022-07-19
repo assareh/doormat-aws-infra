@@ -30,6 +30,7 @@ resource "aws_iam_role" "terraform_role" {
   name = "assareh-hashidemos-terraform-role"
   tags = {
     hc-service-uri = "app.terraform.io/hashidemos/control-workspace"
+    hc-service-uri = "app.terraform.io/hashidemos/hashidemos-io-dns"
   }
   max_session_duration = 3600
   assume_role_policy   = data.aws_iam_policy_document.terraform_assume.json
