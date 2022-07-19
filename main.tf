@@ -1,24 +1,5 @@
-locals {
-  common_tags = {
-    owner     = "assareh"
-    purpose   = "Demo Terraform and Vault"
-    se-region = "AMER - West E2 - R2"
-    terraform = "true" # true/false
-    ttl       = "-1"   #hours
-  }
-}
-
-output "terraform_role" {
-  description = "Terraform IAM role"
-  value       = aws_iam_role.terraform_role.arn
-}
-
-variable "doormat_iam_principal" {}
-
-variable "my_iam_principal" {}
-
 provider "aws" {
-  region = "us-west-2"
+  region = var.region
 
   default_tags {
     tags = local.common_tags
@@ -26,22 +7,25 @@ provider "aws" {
 }
 
 ### For Doormat provider ###
-resource "aws_iam_role" "terraform_role" {
-  name = "assareh-hashidemos-terraform-role"
-  tags = {
-    hc-service-uri = "app.terraform.io/hashidemos/control-workspace"
-    hc-service-uri = "app.terraform.io/hashidemos/hashidemos-io-dns"
-  }
+resource "aws_iam_role" "tfc_workspace" {
+  for_each = toset(var.tfc_workspaces)
+
+  name               = "${var.owner}-tfc-${each.key}"
+  assume_role_policy = data.aws_iam_policy_document.doormat_assume_role.json
+  # inline_policy {
+  #   name   = "TerraformRolePermissions"
+  #   policy = data.aws_iam_policy_document.terraform.json
+  # }
+  managed_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
   max_session_duration = 3600
-  assume_role_policy   = data.aws_iam_policy_document.terraform_assume.json
-  inline_policy {
-    name   = "TerraformRolePermissions"
-    policy = data.aws_iam_policy_document.terraform.json
+  tags = {
+    # this tag is required for Doormat to allow role assumption from the given workspace
+    hc-service-uri = "app.terraform.io/${var.org}/${each.key}"
   }
 }
 
 # assume role policy
-data "aws_iam_policy_document" "terraform_assume" {
+data "aws_iam_policy_document" "doormat_assume_role" {
   statement {
     actions = [
       "sts:AssumeRole",
@@ -56,19 +40,19 @@ data "aws_iam_policy_document" "terraform_assume" {
 }
 
 # terraform policy
-data "aws_iam_policy_document" "terraform" {
-  statement {
-    actions = [
-      "ec2:*",
-      "route53:*"
-    ]
-    resources = ["*"]
-  }
-}
+# data "aws_iam_policy_document" "terraform" {
+#   statement {
+#     actions = [
+#       "ec2:*",
+#       "route53:*"
+#     ]
+#     resources = ["*"]
+#   }
+# }
 
 ### For Packer ###
 resource "aws_iam_role" "packer_role" {
-  name = "assareh-hashidemos-packer-role"
+  name = "${var.owner}-packer-role"
 
   assume_role_policy = data.aws_iam_policy_document.packer_assume_role_policy_definition.json
 }
@@ -85,7 +69,7 @@ data "aws_iam_policy_document" "packer_assume_role_policy_definition" {
 }
 
 resource "aws_iam_policy" "packer_policy_definition" {
-  name = "assareh-hashidemos-packer-policy"
+  name = "${var.owner}-packer-policy"
 
   policy = <<EOF
 {
@@ -143,7 +127,7 @@ EOF
 }
 
 resource "aws_iam_policy_attachment" "packer" {
-  name       = "assareh-hashidemos-packer"
+  name       = "${var.owner}-packer"
   roles      = [aws_iam_role.packer_role.name]
   policy_arn = aws_iam_policy.packer_policy_definition.arn
 }
