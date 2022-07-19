@@ -6,6 +6,8 @@ provider "aws" {
   }
 }
 
+data "aws_caller_identity" "current" {}
+
 ### For Doormat provider ###
 resource "aws_iam_role" "tfc_workspace" {
   for_each = toset(var.tfc_workspaces)
