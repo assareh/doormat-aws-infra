@@ -58,7 +58,10 @@ data "aws_iam_policy_document" "terraform_assume" {
 # terraform policy
 data "aws_iam_policy_document" "terraform" {
   statement {
-    actions   = ["ec2:*"]
+    actions = [
+      "ec2:*",
+      "route53:*"
+    ]
     resources = ["*"]
   }
 }
